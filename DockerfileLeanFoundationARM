@@ -273,6 +273,15 @@ RUN apt-get update && apt install -y xvfb wkhtmltopdf && \
 RUN wget -q https://cdn.quantconnect.com/fonts/foundation.zip && unzip -q foundation.zip && rm foundation.zip \
     && mv "lean fonts/"* /usr/share/fonts/truetype/ && rm -rf "lean fonts/" "__MACOSX/"
 
+RUN update-alternatives --set java /usr/lib/jvm/jdk-17.0.12-oracle-aarch64/bin/java
+# Install IB Gateway: Installs to /root/ibgateway
+RUN apt-get update && apt-get install -y p7zip-full
+
+RUN mkdir -p /root/ibgateway && \
+    wget -q https://download2.interactivebrokers.com/installers/ibgateway/stable-standalone/ibgateway-stable-standalone-macos-arm.dmg && \
+    7z x ibgateway-stable-standalone-macos-arm.dmg -o/root/ibgateway && \
+    rm ibgateway-stable-standalone-macos-arm.dmg
+
 # label definitions
 LABEL strict_python_version=3.11.11
 LABEL python_version=3.11
