@@ -718,6 +718,7 @@ namespace QuantConnect.Lean.Engine.Results
             Algorithm = algorithm;
             Algorithm.SetStatisticsService(this);
             DailyPortfolioValue = StartingPortfolioValue = startingPortfolioValue;
+            Log.Trace("LiveTradingResultHandler.SetAlgorithm(algorithm, startingPortfolioValue): Setting algorithm: StartingPortfolioValue: " + startingPortfolioValue);
             _portfolioValue = new ReferenceWrapper<decimal>(startingPortfolioValue);
             CumulativeMaxPortfolioValue = StartingPortfolioValue;
             AlgorithmCurrencySymbol = Currencies.GetCurrencySymbol(Algorithm.AccountCurrency);
@@ -742,6 +743,8 @@ namespace QuantConnect.Lean.Engine.Results
             // Wire algorithm name and tags updates
             algorithm.NameUpdated += (sender, name) => AlgorithmNameUpdated(name);
             algorithm.TagsUpdated += (sender, tags) => AlgorithmTagsUpdated(tags);
+
+            Log.Trace("LiveTradingResultHandler.SetAlgorithm(): Finished setting algorithm. _portfolioValue: " + _portfolioValue);
         }
 
 

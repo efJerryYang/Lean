@@ -223,10 +223,12 @@ namespace QuantConnect.Lean.Engine
                     algorithm.BrokerageMessageHandler = factory.CreateBrokerageMessageHandler(algorithm, job, SystemHandlers.Api);
 
                     //Initialize the internal state of algorithm and job: executes the algorithm.Initialize() method.
+                    // NOTE: This is actually calling the BrokerageSetupHandler, very confusing.
                     initializeComplete = AlgorithmHandlers.Setup.Setup(new SetupHandlerParameters(dataManager.UniverseSelection, algorithm,
                         brokerage, job, AlgorithmHandlers.Results, AlgorithmHandlers.Transactions, AlgorithmHandlers.RealTime,
                         AlgorithmHandlers.DataCacheProvider, AlgorithmHandlers.MapFileProvider));
 
+                    Log.Trace("Engine.Run(): [HNMCapital.DEBUG] Algorithm.Setup.Setup(SetupHandlerParameters) completed. End of BrokerageSetupHandler. StartingPortfolioValue: " + AlgorithmHandlers.Setup.StartingPortfolioValue);
                     // set this again now that we've actually added securities
                     AlgorithmHandlers.Results.SetAlgorithm(algorithm, AlgorithmHandlers.Setup.StartingPortfolioValue);
 

@@ -270,8 +270,10 @@ namespace QuantConnect.Lean.Engine.Setup
                         algorithm.SetFutureChainProvider(futureChainProvider);
 
                         //Initialise the algorithm, get the required data:
+                        QuantConnect.Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] before algorithm.Initialize()");
                         algorithm.Initialize();
-
+                        QuantConnect.Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] after algorithm.Initialize()");
+                        QuantConnect.Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] test liveJob.Brokerage: " + liveJob.Brokerage);
                         if (liveJob.Brokerage != "PaperBrokerage")
                         {
                             //Zero the CashBook - we'll populate directly from brokerage
@@ -280,6 +282,8 @@ namespace QuantConnect.Lean.Engine.Setup
                                 kvp.Value.SetAmount(0);
                             }
                         }
+                        // check the cashbook
+                        QuantConnect.Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] test algorithm.Portfolio.CashBook: " + algorithm.Portfolio.CashBook["USD"].Amount);
                     }
                     catch (Exception err)
                     {
@@ -304,6 +308,10 @@ namespace QuantConnect.Lean.Engine.Setup
                 {
                     return false;
                 }
+                // TODO:
+                // this shoudl not return zero portoflio value 
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] After LoadCashBalance() algorithm.Portfolio.CashBook[USD].Amount: " + algorithm.Portfolio.CashBook["USD"].Amount);
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] After LoadCashBalance() algorithm.Portfolio.TotalPortfolioValue: " + algorithm.Portfolio.TotalPortfolioValue);
 
                 if (!LoadExistingHoldingsAndOrders(brokerage, algorithm, parameters))
                 {
@@ -317,10 +325,15 @@ namespace QuantConnect.Lean.Engine.Setup
                 dataAggregator?.Initialize(new () { AlgorithmSettings = algorithm.Settings });
 
                 //Finalize Initialization
+                Log.Trace($"BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] Algorithm Type: {algorithm.GetType().FullName}");
                 algorithm.PostInitialize();
 
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] PostInitialize() completed. algorithm.Portfolio.CashBook[USD].Amount: " + algorithm.Portfolio.CashBook["USD"].Amount);
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] PostInitialize() completed. algorithm.Portfolio.TotalPortfolioValue: " + algorithm.Portfolio.TotalPortfolioValue);
+                // TODO: Now confirmed, must be done before th SetupCurrencyConversions, because it will compute margin, which will utilize TotalPortfolioValue
                 BaseSetupHandler.SetupCurrencyConversions(algorithm, parameters.UniverseSelection);
-
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] SetupCurrencyConversions() completed. algorithm.Portfolio.CashBook[USD].Amount: " + algorithm.Portfolio.CashBook["USD"].Amount);
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] SetupCurrencyConversions() completed. algorithm.Portfolio.TotalPortfolioValue: " + algorithm.Portfolio.TotalPortfolioValue);
                 if (algorithm.Portfolio.TotalPortfolioValue == 0)
                 {
                     algorithm.Debug("Warning: No cash balances or holdings were found in the brokerage account.");
@@ -341,6 +354,8 @@ namespace QuantConnect.Lean.Engine.Setup
                 }
 
                 //Set the starting portfolio value for the strategy to calculate performance:
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] check algorithm.Portfolio.CashBook[USD].Amount: " + algorithm.Portfolio.CashBook["USD"].Amount);
+                Logging.Log.Trace("BrokerageSetupHandler.Setup(): [HNMCapital.DEBUG] check algorithm.Portfolio.TotalPortfolioValue: " + algorithm.Portfolio.TotalPortfolioValue);
                 StartingPortfolioValue = algorithm.Portfolio.TotalPortfolioValue;
                 StartingDate = DateTime.Now;
             }

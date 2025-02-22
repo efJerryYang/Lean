@@ -745,7 +745,7 @@ namespace QuantConnect.Algorithm
         }
 
         /// <summary>
-        /// Initialise the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized.
+        /// Initialize the data and resolution required, as well as the cash and start-end dates for your algorithm. All algorithms must initialized.
         /// </summary>
         /// <seealso cref="SetStartDate(DateTime)"/>
         /// <seealso cref="SetEndDate(DateTime)"/>
@@ -766,6 +766,8 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(HandlingData)]
         public virtual void PostInitialize()
         {
+            Log($"QCAlgorithm.PostInitialize(): [HNMCapital.DEBUG] - Start PostInitialize");
+            Portfolio.LogMarginInformation();
             if (_endDate < _startDate)
             {
                 throw new ArgumentException("Please select an algorithm end date greater than start date.");
@@ -834,6 +836,8 @@ namespace QuantConnect.Algorithm
 
             // perform end of time step checks, such as enforcing underlying securities are in raw data mode
             OnEndOfTimeStep();
+            Portfolio.LogMarginInformation();
+            Log($"QCAlgorithm.PostInitialize(): [HNMCapital.DEBUG] - End PostInitialize");
         }
 
         /// <summary>

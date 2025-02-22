@@ -327,6 +327,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
             var timeTriggered = request.Universe as ITimeTriggeredUniverse;
             if (timeTriggered != null)
             {
+                Log.Trace($"LiveTradingDataFeed.CreateUniverseSubscription(): [HNMCapital.DEBUG] ID={config.Symbol.ID}, Symbol.Value={config.Symbol.Value}, Symbol={config.Symbol}");
                 Log.Trace($"LiveTradingDataFeed.CreateUniverseSubscription(): Creating user defined universe: {config.Symbol.ID}");
 
                 // spoof a tick on the requested interval to trigger the universe selection function
@@ -343,6 +344,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 config.Type.IsAssignableTo(typeof(FundamentalUniverse)) ||
                 (request.Universe is OptionChainUniverse && request.Configuration.SecurityType != SecurityType.FutureOption))
             {
+                Log.Trace($"LiveTradingDataFeed.CreateUniverseSubscription(): [HNMCapital.DEBUG] ID={config.Symbol.ID}, Symbol.Value={config.Symbol.Value}, Symbol={config.Symbol}");
                 Log.Trace($"LiveTradingDataFeed.CreateUniverseSubscription(): Creating {config.Type.Name} universe: {config.Symbol.ID}");
 
                 // Will try to pull data from the data folder every 10min, file with yesterdays date.
