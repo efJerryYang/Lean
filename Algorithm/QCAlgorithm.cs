@@ -3329,8 +3329,18 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(AddingData)]
         public OptionChain OptionChain(Symbol symbol, bool flatten = false)
         {
-            return OptionChains(new[] { symbol }, flatten).Values.SingleOrDefault() ??
-                new OptionChain(GetCanonicalOptionSymbol(symbol), Time.Date, flatten);
+            var chainResult = OptionChains(new[] { symbol }, flatten).Values.SingleOrDefault();
+            if (chainResult != null)
+            {
+            Debug($"OptionChain: Using existing chain for symbol {symbol}");
+            return chainResult;
+            }
+            else
+            {
+            var canonicalSymbol = GetCanonicalOptionSymbol(symbol);
+            Debug($"OptionChain: No existing chain found for symbol {symbol}. Creating new chain using canonical symbol {canonicalSymbol}");
+            return new OptionChain(canonicalSymbol, Time.Date, flatten);
+            }
         }
 
         /// <summary>
@@ -3348,12 +3358,63 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(AddingData)]
         public OptionChains OptionChains(IEnumerable<Symbol> symbols, bool flatten = false)
         {
+            Log($"OptionChains: received {symbols.Count()} symbols: {string.Join(", ", symbols.Select(x => x.Value))}");
             var canonicalSymbols = symbols.Select(GetCanonicalOptionSymbol).ToList();
             var optionCanonicalSymbols = canonicalSymbols.Where(x => x.SecurityType != SecurityType.FutureOption);
             var futureOptionCanonicalSymbols = canonicalSymbols.Where(x => x.SecurityType == SecurityType.FutureOption);
 
-            var optionChainsData = History(optionCanonicalSymbols, 1).GetUniverseData()
-                .Select(x => (x.Keys.Single(), x.Values.Single().Cast<OptionUniverse>()));
+            // var optionChainsData = History(optionCanonicalSymbols, 1).GetUniverseData()
+            //     .Select(x => (x.Keys.Single(), x.Values.Single().Cast<OptionUniverse>()));
+
+            // Retrieve historical data for the list of canonical option symbols
+            // TODO: why do we need to make a historical request here, especially this will yield a Daily resolution request on the quote data
+            // I cannot see the point for options here. For options, we only cares about the contracts.
+            var historyData = History(optionCanonicalSymbols, 1);
+            Log($"HistoryData type: {historyData.GetType().FullName}");
+            Log($"History retrieved for canonical symbols: {string.Join(", ", optionCanonicalSymbols.Select(x => x.Value))}");
+            Log($"History length: {historyData.Count()}");
+
+            // Extract the universe data from the historical data result
+            var universeData = historyData.GetUniverseData();
+            Log($"UniverseData type: {universeData.GetType().FullName}");
+            Log("Extracted universe data from history.");
+            // 2025-02-22T20:59:24.3704729Z TRACE:: Log: UniverseData type: System.Linq.Enumerable+IteratorSelectIterator`2[[QuantConnect.Data.BaseData, QuantConnect.Common, Version=2.5.0.0, Culture=neutral, PublicKeyToken=null],[QuantConnect.Data.Market.DataDictionary`1[[QuantConnect.Data.UniverseSelection.BaseDataCollection, QuantConnect.Common, Version=2.5.0.0, Culture=neutral, PublicKeyToken=null]], QuantConnect.Common, Version=2.5.0.0, Culture=neutral, PublicKeyToken=null]]
+            // Enumerate the universeData entries and log key and summary of values
+            foreach (var entry in universeData)
+            {
+                // Assume each entry has a single key and single value collection
+                var key = entry.Keys.FirstOrDefault();
+                var values = entry.Values.FirstOrDefault();
+                if (key != null)
+                {
+                    // Get a summary of the values: the count and the runtime types of each element
+                    var valueTypes = values != null 
+                        ? string.Join(", ", values.Select(v => v.GetType().Name).Distinct()) 
+                        : "no values";
+                    int count = values?.Count() ?? 0;
+                    Log($"UniverseData entry - Key: {key}, Count: {count}, Value Types: {valueTypes}");
+                    var firstFew = values.Take(5);
+                    foreach (var item in firstFew)
+                    {
+                        Log($"    ItemType: {item.GetType().Name}, Item: {item}");
+                    }
+                }
+                else
+                {
+                    Log("UniverseData entry with no key.");
+                }
+            }
+
+            // Process each universe data entry: each entry should have a single key (the canonical symbol)
+            // and a single corresponding value which is cast to OptionUniverse.
+            var optionChainsData = universeData.Select(dataEntry =>
+            {
+                var canonicalOptionSymbol = dataEntry.Keys.Single();
+                var optionUniverseCollection = dataEntry.Values.Single().Cast<OptionUniverse>();
+                Log($"Processing universe data for canonical symbol: {canonicalOptionSymbol}");
+                Log($"Option universe collection size: {optionUniverseCollection.Count()}");
+                return (canonicalOptionSymbol, optionUniverseCollection);
+            });
 
             // TODO: For FOPs, we fall back to the option chain provider until OptionUniverse supports them
             var futureOptionChainsData = futureOptionCanonicalSymbols.Select(symbol =>
@@ -3372,6 +3433,11 @@ namespace QuantConnect.Algorithm
             foreach (var (symbol, contracts) in optionChainsData.Concat(futureOptionChainsData))
             {
                 var symbolProperties = SymbolPropertiesDatabase.GetSymbolProperties(symbol.ID.Market, symbol, symbol.SecurityType, AccountCurrency);
+                if (symbolProperties != null)
+                {
+                    Log("SymbolProperties type: " + symbolProperties.GetType().FullName);
+                    Log("SymbolProperties content: " + symbolProperties);
+                }
                 var optionChain = new OptionChain(symbol, time, contracts, symbolProperties, flatten);
                 chains.Add(symbol, optionChain);
             }
