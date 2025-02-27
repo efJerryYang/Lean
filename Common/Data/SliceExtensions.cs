@@ -17,6 +17,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using QuantConnect.Data.Consolidators;
 using QuantConnect.Data.Custom.IconicTypes;
 using QuantConnect.Data.Market;
@@ -332,6 +333,46 @@ namespace QuantConnect.Data
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Generates a human-readable string representation of the given <see cref="Slice"/> object.
+        /// </summary>
+        /// <param name="slice">The <see cref="Slice"/> object to be formatted.</param>
+        /// <returns>A string containing the formatted representation of the <see cref="Slice"/> object.</returns>
+        public static string ToPrettyString(this Slice slice)
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"Slice Time: {slice.Time} (UTC: {slice.UtcTime}) | Has Data: {slice.HasData} | Symbols Count: {slice.Count}");
+
+            void AppendData<T>(string title, IDictionary<Symbol, T> data)
+            {
+                sb.AppendLine($"\n{title}:");
+                foreach (var kvp in data)
+                {
+                    sb.AppendLine($"  {kvp.Key}: {kvp.Value}");
+                }
+            }
+
+            AppendData("TradeBars", slice.Bars);
+            AppendData("QuoteBars", slice.QuoteBars);
+            AppendData("Ticks", slice.Ticks.ToDictionary(kvp => kvp.Key, kvp => string.Join(", ", kvp.Value)));
+            sb.AppendLine(slice.OptionChains.ToPrettyString());
+            AppendData("FuturesChains", slice.FuturesChains);
+            AppendData("Splits", slice.Splits);
+            AppendData("Dividends", slice.Dividends);
+            AppendData("Delistings", slice.Delistings);
+            AppendData("SymbolChangedEvents", slice.SymbolChangedEvents);
+            AppendData("MarginInterestRates", slice.MarginInterestRates);
+
+            sb.AppendLine("\nAll Data:");
+            foreach (var data in slice.AllData)
+            {
+                sb.AppendLine($"  {data}");
+            }
+
+            return sb.ToString();
         }
     }
 }
