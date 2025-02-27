@@ -81,6 +81,8 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 var immediateEmission = dataConfig.Resolution == Resolution.Tick || dataConfig.IsCustomData || FrontierTimeProvider == null;
                 var exchangeTimeZone = dataConfig.ExchangeTimeZone;
 
+                QuantConnect.Logging.Log.Trace($"DataQueueHandlerManager.Subscribe(): {dataHandler} will handle {dataConfig}");
+                // 20250226 18:13:04.901 TRACE:: DataQueueHandlerManager.Subscribe(): QuantConnect.Lean.DataSource.ThetaData.ThetaDataProvider will handle SPY   250226C00675000,#0,SPY,Minute,OpenInterest,OpenInterest,Raw,OpenInterest,Internal
                 IEnumerator<BaseData> enumerator;
                 try
                 {
@@ -99,10 +101,18 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                 {
                     // we will try the next DQH if any, if it handles the request correctly we ignore the error
                     failureException = exception;
+                    QuantConnect.Logging.Log.Error(exception, $"DataQueueHandlerManager.Subscribe(): {dataHandler} failed to handle {dataConfig}");
                     continue;
+                }
+                // TODO: Hack to avoid using the enumerator for equity data from ThetaData
+                // QuantConnect.Lean.DataSource.ThetaData.ThetaDataProvider
+                if (dataConfig.SecurityType == SecurityType.Equity && dataHandler.GetType().Name == "ThetaDataProvider")
+                {
+                    enumerator = null;
                 }
 
                 // Check if the enumerator is not empty
+                QuantConnect.Logging.Log.Trace($"DataQueueHandlerManager.Subscribe(): {dataHandler} returned {enumerator} for {dataConfig}");
                 if (enumerator != null)
                 {
                     if (!_dataConfigAndDataHandler.TryGetValue(dataConfig, out var dataQueueHandlers))
@@ -111,6 +121,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                         // but we need to keep track so we can call unsubscribe later to the target data queue handler
                         _dataConfigAndDataHandler[dataConfig] = dataQueueHandlers = new Queue<IDataQueueHandler>();
                     }
+                    QuantConnect.Logging.Log.Trace($"DataQueueHandlerManager.Subscribe(): Enqueueing {dataHandler} for {dataConfig}");
                     dataQueueHandlers.Enqueue(dataHandler);
 
                     if (immediateEmission)

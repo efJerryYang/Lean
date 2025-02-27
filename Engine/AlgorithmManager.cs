@@ -189,6 +189,7 @@ namespace QuantConnect.Lean.Engine
 
                 time = timeSlice.Time;
                 DataPoints += timeSlice.DataPointCount;
+                Log.Debug($"AlgorithmManager.Run(): Processing data for {timeSlice.Time}. Data Points: {timeSlice.DataPointCount}");
 
                 if (backtestMode && algorithm.Portfolio.TotalPortfolioValue <= 0)
                 {
@@ -525,6 +526,9 @@ namespace QuantConnect.Lean.Engine
 
                 try
                 {
+                    // algorithm.Debug("AlgorithmManager.Run(): OnData(timeSlice.Slice)... Slice.HasData: " + timeSlice.Slice.HasData);
+                    // algorithm.Debug("AlgorithmManager.Run(): OnData(timeSlice.Slice)... timeSlice.Slice.GetType(): " + timeSlice.Slice.GetType().Name);
+                    // algorithm.Debug("AlgorithmManager.Run(): OnData(timeSlice.Slice)... algorithm.CurrentSlice.GetType(): " + algorithm.CurrentSlice.GetType().Name);
                     if (timeSlice.Slice.HasData)
                     {
                         // EVENT HANDLER v3.0 -- all data in a single event
@@ -669,6 +673,7 @@ namespace QuantConnect.Lean.Engine
 
             foreach (var timeSlice in synchronizer.StreamData(cancellationToken))
             {
+                // algorithm.Debug($"Processing time slice {timeSlice.Time}... IsWarmingUp: {algorithm.IsWarmingUp}");
                 if (algorithm.IsWarmingUp)
                 {
                     var now = DateTime.UtcNow;
