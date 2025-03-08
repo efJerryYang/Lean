@@ -15,17 +15,21 @@ RUN if [ "$(uname -m)" = "aarch64" ]; then \
     mv tini /usr/local/bin/tini && \
     chmod +x /usr/local/bin/tini
 
-# Install clr-loader for PythonNet
-RUN pip install --no-cache-dir clr-loader==0.1.6
+# Install wkhtmltopdf and xvfb to support HTML to PDF conversion of reports
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb wkhtmltopdf && \
+    apt-get clean && apt-get autoclean && apt-get autoremove --purge -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install TA-lib for python
 RUN wget -q https://cdn.quantconnect.com/ta-lib/ta-lib-0.4.0-src.tar.gz && \
     tar -zxvf ta-lib-0.4.0-src.tar.gz && cd ta-lib && \
     ./configure --prefix=/usr && make && make install && \
-    cd .. && rm -rf ta-lib && rm ta-lib-0.4.0-src.tar.gz && \
-    pip install --no-cache-dir TA-Lib==0.5.1
+    cd .. && rm -rf ta-lib && rm ta-lib-0.4.0-src.tar.gz
 
 RUN pip install --no-cache-dir      \
+    clr-loader==0.1.6               \
+    TA-Lib==0.5.1                   \
     scipy==1.11.4                   \
     xarray==2024.11.0               \
     polars==1.16.0                  \
@@ -131,10 +135,6 @@ RUN pip install --no-cache-dir      \
     POT==0.9.5                      \
     pykalman==0.9.7
 
-# Install wkhtmltopdf and xvfb to support HTML to PDF conversion of reports
-RUN apt-get update && apt install -y xvfb wkhtmltopdf && \
-    apt-get clean && apt-get autoclean && apt-get autoremove --purge -y && rm -rf /var/lib/apt/lists/*
-
 # Install .NET Interactive to support C# in Jupyter notebooks
 ENV PATH="${PATH}:/root/.dotnet/tools"
 RUN dotnet tool install -g --no-cache --version 1.0.607001 --add-source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" Microsoft.dotnet-interactive && \
@@ -146,9 +146,11 @@ ENV PYTHONPATH=${WORK}:${PYTHONPATH}
 
 # Link Python startup file to profile
 RUN mkdir -p /root/.ipython/profile_default/startup/ && \
-    ln -s /Lean/Launcher/bin/Debug/start.py /root/.ipython/profile_default/startup/start.py
-
-RUN find ${WORK} -type f -not -name '*.py*' -not -name '*.xml' -not -name '*.exe.config' -not -name '*.exe' -not -name '*.so' -not -name '*.dll' -not -name '*.ipynb' -not -name '*.csx' -not -name 'QuantConnect.Lean.Launcher.runtimeconfig.json' -not -name 'decimal.py' -delete
+    ln -s /Lean/Launcher/bin/Debug/start.py /root/.ipython/profile_default/startup/start.py && \
+    find ${WORK} -type f -not -name '*.py*' -not -name '*.xml' -not -name '*.exe.config' \
+    -not -name '*.exe' -not -name '*.so' -not -name '*.dll' -not -name '*.ipynb' \
+    -not -name '*.csx' -not -name 'QuantConnect.Lean.Launcher.runtimeconfig.json' \
+    -not -name 'decimal.py' -delete
 
 # Setup Jupyter kernels
 RUN echo "{\"argv\":[\"python\",\"-m\",\"ipykernel_launcher\",\"-f\",\"{connection_file}\"],\"display_name\":\"Foundation-Py-Default\",\"language\":\"python\",\"metadata\":{\"debugger\":true}}" > /root/.pyenv/versions/3.11.11/share/jupyter/kernels/python3/kernel.json

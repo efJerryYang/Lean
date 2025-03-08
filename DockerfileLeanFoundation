@@ -5,27 +5,32 @@ LABEL maintainer="QuantConnect <contact@quantconnect.com>"
 # Use baseimage-docker's init system
 CMD ["/sbin/my_init"]
 
-# Install minimal OS packages needed for base functionality
-RUN apt-get update && apt-get -y install wget curl unzip \
-   git bzip2 zlib1g-dev xvfb libxrender1 libxtst6 libxi6 \
-   libglib2.0-dev libopenmpi-dev libstdc++6 openmpi-bin \
-   pandoc libcurl4-openssl-dev libgtk2.0.0 build-essential \
-   && apt-get clean && apt-get autoclean && apt-get autoremove --purge -y \
-   && rm -rf /var/lib/apt/lists/*
+# Set environment variables to reduce size
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1
+
+# Install OS packages needed for base functionality
+RUN apt-get update && apt-get -y install --no-install-recommends \
+    wget curl unzip git bzip2 zlib1g-dev xvfb libxrender1 libxtst6 libxi6 \
+    libglib2.0-dev libopenmpi-dev libstdc++6 openmpi-bin \
+    pandoc libcurl4-openssl-dev libgtk2.0.0 build-essential \
+    software-properties-common gcc g++ make \
+    fontconfig \
+    libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
+    libncurses5-dev libncursesw5-dev libffi-dev liblzma-dev \
+    python3-pip python3-setuptools python3-wheel python3-dev \
+    && apt-get clean && apt-get autoclean && apt-get autoremove --purge -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install dotnet sdk & runtime
 RUN add-apt-repository ppa:dotnet/backports && apt-get update && apt-get install -y dotnet-sdk-9.0 && \
     apt-get clean && apt-get autoclean && apt-get autoremove --purge -y && rm -rf /var/lib/apt/lists/*
 
-ENV PIP_DEFAULT_TIMEOUT=120
-
 # Install pyenv for Python version management
-RUN apt-get update && apt-get install -y \
-    curl build-essential libssl-dev zlib1g-dev libbz2-dev \
-    libreadline-dev libsqlite3-dev wget llvm libncurses5-dev \
-    libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev \
-    python3-pip python3-setuptools python3-wheel python3-dev \
-    && curl https://pyenv.run | bash
+RUN curl https://pyenv.run | bash
 
 # Add pyenv to PATH
 ENV PATH="/root/.pyenv/bin:/root/.pyenv/shims:${PATH}"
@@ -33,7 +38,8 @@ ENV PATH="/root/.pyenv/bin:/root/.pyenv/shims:${PATH}"
 # Install Python 3.11.11 and set as global
 RUN pyenv install 3.11.11 && \
     pyenv global 3.11.11 && \
-    pip install --upgrade pip
+    pip install --upgrade pip && \
+    find /root/.pyenv/versions -name __pycache__ -type d -exec rm -rf {} +
 
 # Set PythonDLL variable for PythonNet
 ENV PYTHONNET_PYDLL="/root/.pyenv/versions/3.11.11/lib/libpython3.11.so"
@@ -46,7 +52,8 @@ RUN pip install --no-cache-dir \
 
 # Install fonts for matplotlib
 RUN wget -q https://cdn.quantconnect.com/fonts/foundation.zip && unzip -q foundation.zip && rm foundation.zip \
-    && mv "lean fonts/"* /usr/share/fonts/truetype/ && rm -rf "lean fonts/" "__MACOSX/"
+    && mv "lean fonts/"* /usr/share/fonts/truetype/ && rm -rf "lean fonts/" "__MACOSX/" \
+    && fc-cache -f
 
 # label definitions
 LABEL strict_python_version=3.11.11
