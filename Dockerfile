@@ -1,12 +1,6 @@
-#
-#   LEAN Docker Container 20200522
-#   Cross platform deployment for multiple brokerages
-#
+FROM quantconnect/lean:foundation-slim
 
-# Use base system
-FROM quantconnect/lean:foundation
-
-MAINTAINER QuantConnect <contact@quantconnect.com>
+LABEL maintainer="QuantConnect <contact@quantconnect.com>"
 
 #Install debugpy and PyDevD for remote python debugging
 RUN pip install --no-cache-dir ptvsd==4.3.2 debugpy~=1.6.7 pydevd-pycharm~=231.9225.15

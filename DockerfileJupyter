@@ -1,12 +1,6 @@
-#
-#    LEAN Jupyter Docker Container 20190428
-#
+FROM quantconnect/lean:slim
 
-# Use base system for cleaning up wayward processes
-ARG LEAN_TAG=latest
-FROM quantconnect/lean:$LEAN_TAG
-
-MAINTAINER QuantConnect <contact@quantconnect.com>
+LABEL maintainer="QuantConnect <contact@quantconnect.com>"
 
 # Install Tini
 RUN if [ "$(uname -m)" = "aarch64" ]; then \
@@ -24,13 +18,130 @@ RUN if [ "$(uname -m)" = "aarch64" ]; then \
 # Install clr-loader for PythonNet
 RUN pip install --no-cache-dir clr-loader==0.1.6
 
+# Install TA-lib for python
+RUN wget -q https://cdn.quantconnect.com/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -zxvf ta-lib-0.4.0-src.tar.gz && cd ta-lib && \
+    ./configure --prefix=/usr && make && make install && \
+    cd .. && rm -rf ta-lib && rm ta-lib-0.4.0-src.tar.gz && \
+    pip install --no-cache-dir TA-Lib==0.5.1
+
+RUN pip install --no-cache-dir      \
+    scipy==1.11.4                   \
+    xarray==2024.11.0               \
+    polars==1.16.0                  \
+    injector==0.22.0                \
+    modin==0.26.1
+
+RUN pip install --no-cache-dir      \
+    scikit-learn==1.4.2             \
+    scikit-learn-extra==0.3.0       \
+    sklearn-json==0.1.0             \
+    xgboost==2.1.3                  \
+    imbalanced-learn==0.12.4        \
+    mlxtend==0.23.3                 \
+    TPOT==0.12.2                    \
+    lazypredict==0.2.14a1           \
+    gplearn==0.4.2                  \
+    river==0.21.0                   \
+    ngboost==0.5.1                  \
+    feature-engine==1.6.2
+
+RUN pip install --no-cache-dir      \
+    pmdarima==2.0.4                 \
+    sktime==0.26.0                  \
+    dtw-python==1.5.3               \
+    stumpy==1.13.0                  \
+    ruptures==1.1.9                 \
+    hurst==0.0.5                    \
+    tsfel==0.1.9                    \
+    nixtla==0.6.4                   \
+    tigramite==5.2.6.7              \
+    arch==7.2.0                     \
+    mgarch==0.3.0
+
+RUN pip install --no-cache-dir      \
+    statsmodels==0.14.4             \
+    pymc==5.19.0                    \
+    cmdstanpy==1.2.4                \
+    aesara==2.9.4                   \
+    pingouin==0.5.5                 \
+    hmmlearn==0.3.3
+
+RUN pip install --no-cache-dir      \
+    QuantLib==1.36                  \
+    ta==0.11.0                      \
+    pandas-ta==0.3.14b              \
+    pandas_market_calendars==4.4.2  \
+    quantecon==0.7.2                \
+    cvxportfolio==1.4.0
+
+RUN pip install --no-cache-dir      \
+    cvxopt==1.3.2                   \
+    cvxpy==1.6.0                    \
+    optuna==4.1.0                   \
+    hyperopt==0.2.7                 \
+    scikit-optimize==0.10.2         \
+    bayesian-optimization==2.0.0    \
+    scs==3.2.7
+
+RUN pip install --no-cache-dir      \
+    matplotlib==3.7.5               \
+    seaborn==0.13.2                 \
+    plotly==5.24.1                  \
+    altair==5.5.0                   \
+    graphviz==0.20.3                \
+    contourpy==1.3.1                \
+    ipympl==0.9.4
+
+RUN pip install --no-cache-dir      \
+    fastparquet==2024.11.0          \
+    pyarrow==15.0.1                 \
+    ijson==3.3.0                    \
+    lxml==5.3.0                     \
+    jsonschema==4.23.0              \
+    msgpack==1.1.0                  \
+    dill==0.3.8
+
+RUN pip install --no-cache-dir      \
+    jupyterlab==4.3.2               \
+    ipywidgets==8.1.5               \
+    jupyterlab-widgets==3.0.13      \
+    jupyter-resource-usage==1.1.0   \
+    line-profiler==4.2.0            \
+    cython==3.0.9                   \
+    wrapt==1.16.0                   \
+    docutils==0.21.2
+
+RUN pip install --no-cache-dir      \
+    umap-learn==0.5.7               \
+    scikit-tda==1.1.1               \
+    persim==0.3.7                   \
+    ripser==0.6.10                  \
+    tensorly==0.9.0
+
+RUN pip install --no-cache-dir      \
+    mpmath==1.3.0                   \
+    findiff==0.10.2                 \
+    sdeint==0.3.0                   \
+    pymdptoolbox==4.0-b3            \
+    deap==1.4.1                     \
+    fuzzy-c-means==1.7.2            \
+    EMD-signal==1.6.4               \
+    nolds==0.6.1                    \
+    POT==0.9.5                      \
+    pykalman==0.9.7
+
+# Install wkhtmltopdf and xvfb to support HTML to PDF conversion of reports
+RUN apt-get update && apt install -y xvfb wkhtmltopdf && \
+    apt-get clean && apt-get autoclean && apt-get autoremove --purge -y && rm -rf /var/lib/apt/lists/*
+
 # Install .NET Interactive to support C# in Jupyter notebooks
 ENV PATH="${PATH}:/root/.dotnet/tools"
 RUN dotnet tool install -g --no-cache --version 1.0.607001 --add-source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" Microsoft.dotnet-interactive && \
     dotnet interactive jupyter install
 
 # Setting some environment variables
-ENV WORK /Lean/Launcher/bin/Debug/
+ENV WORK=/Lean/Launcher/bin/Debug/
 ENV PYTHONPATH=${WORK}:${PYTHONPATH}
 
 # Link Python startup file to profile
@@ -38,6 +149,10 @@ RUN mkdir -p /root/.ipython/profile_default/startup/ && \
     ln -s /Lean/Launcher/bin/Debug/start.py /root/.ipython/profile_default/startup/start.py
 
 RUN find ${WORK} -type f -not -name '*.py*' -not -name '*.xml' -not -name '*.exe.config' -not -name '*.exe' -not -name '*.so' -not -name '*.dll' -not -name '*.ipynb' -not -name '*.csx' -not -name 'QuantConnect.Lean.Launcher.runtimeconfig.json' -not -name 'decimal.py' -delete
+
+# Setup Jupyter kernels
+RUN echo "{\"argv\":[\"python\",\"-m\",\"ipykernel_launcher\",\"-f\",\"{connection_file}\"],\"display_name\":\"Foundation-Py-Default\",\"language\":\"python\",\"metadata\":{\"debugger\":true}}" > /root/.pyenv/versions/3.11.11/share/jupyter/kernels/python3/kernel.json
+RUN echo "{\"argv\":[\"dotnet\",\"interactive\",\"jupyter\",\"--default-kernel\",\"csharp\",\"{connection_file}\",\"--http-port-range\",\"1000-3000\"],\"display_name\":\"Foundation-C#-Default\",\"language\":\"C#\",\"metadata\":{\"vscode\":{\"extension_id\":\"ms-dotnettools.dotnet-interactive-vscode\",\"kernel_id\":\"dotnet-interactive\"}}}" > /root/.local/share/jupyter/kernels/.net-csharp/kernel.json
 
 # Create initialize script
 RUN echo "if [ ! -d \"${WORK}Notebooks\" ]; then mkdir ${WORK}Notebooks; fi && \
@@ -49,11 +164,9 @@ RUN echo "if [ ! -d \"${WORK}Notebooks\" ]; then mkdir ${WORK}Notebooks; fi && \
     jupyter lab --ip='0.0.0.0' --port=8888 --no-browser --allow-root --notebook-dir=\"Notebooks\" --LabApp.token='' " \
     > start.sh
 
-RUN echo "{\"argv\":[\"dotnet\",\"interactive\",\"jupyter\",\"--default-kernel\",\"csharp\",\"{connection_file}\",\"--http-port-range\",\"1000-3000\"],\"display_name\":\"Foundation-C#-Default\",\"language\":\"C#\",\"metadata\":{\"vscode\":{\"extension_id\":\"ms-dotnettools.dotnet-interactive-vscode\",\"kernel_id\":\"dotnet-interactive\"}}}" > /root/.local/share/jupyter/kernels/.net-csharp/kernel.json
-
 RUN chmod -R 777 ${WORK}
 EXPOSE 8888
 WORKDIR $WORK
 
 ENTRYPOINT [ "/usr/local/bin/tini", "--" ]
-CMD ./start.sh
+CMD ["./start.sh"]
