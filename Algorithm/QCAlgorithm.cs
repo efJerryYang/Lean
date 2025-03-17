@@ -3360,7 +3360,7 @@ namespace QuantConnect.Algorithm
         [DocumentationAttribute(AddingData)]
         public OptionChains OptionChains(IEnumerable<Symbol> symbols, bool flatten = false)
         {
-            Debug($"OptionChains: received {symbols.Count()} symbols: {string.Join(", ", symbols.Select(x => x.Value))}");
+            Debug($"OptionChains: Time = {Time}, Flatten = {flatten}");
             var canonicalSymbols = symbols.Select(GetCanonicalOptionSymbol).ToList();
             var optionCanonicalSymbols = canonicalSymbols.Where(x => x.SecurityType != SecurityType.FutureOption);
             var futureOptionCanonicalSymbols = canonicalSymbols.Where(x => x.SecurityType == SecurityType.FutureOption);
